@@ -18,6 +18,12 @@ async def search_jobs(skills: List[str], role_name: str) -> List[JobListing]:
             
             # Simple simulation: return all as JobListing models
             jobs = [JobListing(**job) for job in data]
+            
+            # --- VECTOR DB INTEGRATION ---
+            # Embed and vectorize each Job Description (JD)
+            from utils.vector_db import store_job_vectors
+            store_job_vectors(jobs)
+            
             return jobs
             
     except FileNotFoundError:

@@ -38,6 +38,13 @@ async def process_resume(resume_text: str) -> ResumeParseOutput:
         result = await chain.ainvoke({"resume_text": resume_text})
         # Add the raw text to the result object
         result.raw_text = resume_text
+        
+        # --- VECTOR DB INTEGRATION ---
+        # Automatically embed and store in Vector DB
+        from utils.vector_db import store_resume_vector
+        # For now we use a default ID, in production this would be the user's resume ID
+        store_resume_vector("current_user_resume", resume_text)
+        
         return result
     except Exception as e:
         print(f"Error parsing resume with Gemini: {e}")
