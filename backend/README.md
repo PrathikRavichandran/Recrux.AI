@@ -1,3 +1,15 @@
+---
+title: Recrux Backend
+emoji: 🎯
+colorFrom: indigo
+colorTo: pink
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+short_description: Multi-agent job matching API (LangGraph + Gemini)
+---
+
 # Recrux.AI Backend - AI Agent Orchestration
 
 This is the AI-driven core of Recrux.AI. It uses a **Multi-Agent Architecture** built on **LangGraph** to automate the process of resume evaluation and job matching.
