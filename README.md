@@ -1,90 +1,94 @@
+# Recrux.AI — Intelligent Multi-Agent Job Matching
 
-# Recrux.AI - Intelligent Multi-Agent Job Matching
+> **Status:** Backend agents fully implemented. Frontend currently ships as a static UI showcase — backend wiring is the next milestone (see roadmap below).
 
-**Recrux.AI** is a state-of-the-art job discovery and matching platform powered by a multi-agent AI architecture. It leverages the power of Google's **Gemini 3 Flash Preview** and **LangGraph** to provide hyper-personalized job recommendations by analyzing resumes and matching them with real-world job descriptions.
+A job-discovery and matching platform powered by a multi-agent AI architecture. Google Gemini + LangGraph orchestrate three specialized agents (resume parser, job searcher, match scorer) behind a FastAPI service. A separate React/Vite frontend shows the intended product UX.
 
----
+## Architecture
 
-## 🚀 Key Features
-
-- **Multi-Agent Architecture**: Discrete AI agents for resume parsing, job searching, and match scoring.
-- **Intelligent Resume Parsing**: Extracts skills, experience, and calculates ATS scores automatically.
-- **Smart Job Matching**: Goes beyond keyword matching to understand context using LLMs.
-- **Modern User Experience**: A sleek, reactive dashboard for managing resumes and tracking applications.
-- **Standalone Agents**: Backend is designed with modularity, allowing agents to be tested and deployed independently.
-
----
-
-## 🛠️ Tech Stack
-
-### Frontend
-- **Framework**: [React 19](https://reactjs.org/)
-- **Build Tool**: [Vite](https://vitejs.dev/)
-- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
-- **Animations**: [Motion](https://motion.dev/)
-- **Icons**: [Lucide React](https://lucide.dev/)
-
-### Backend
-- **Framework**: [FastAPI](https://fastapi.tiangolo.com/)
-- **AI Orchestration**: [LangGraph](https://www.langchain.com/langgraph) & [LangChain](https://www.langchain.com/)
-- **LLM**: Google **Gemini 3 Flash Preview**
-- **File Parsing**: PyMuPDF (PDF) & python-docx (DOCX)
-- **Data Handling**: Pydantic v2
-
----
-
-## 📁 Project Structure
-
-```bash
-project-root/
-│
-├── frontend/             # React Application (Vite)
-│   ├── src/              # UI components and logic
-│   └── package.json      # Frontend dependencies
-│
-└── backend/              # FastAPI Application
-    ├── agents/           # LangGraph Agents (Resume, Search, Match)
-    ├── routers/          # API Endpoints
-    ├── models/           # Pydantic data schemas
-    ├── utils/            # Utilities (File parsing, Mock data)
-    └── main.py           # Application entry point
+```
+                    ┌─────────────────────────┐
+                    │   React + Vite SPA      │
+                    │   (frontend/)           │
+                    │   static UI showcase    │
+                    └───────────┬─────────────┘
+                                │
+                                │  (planned — currently mock data)
+                                ▼
+┌──────────────────────────────────────────────────────┐
+│            FastAPI backend  (backend/)               │
+│            CORS-restricted, env-driven origins       │
+│                                                      │
+│  /api/agents  →  LangGraph workflow                  │
+│       │                                              │
+│       ├──▶ resume_agent     (PyMuPDF / python-docx)  │
+│       ├──▶ job_search_agent (mock JSON corpus)       │
+│       └──▶ job_match_agent  (Gemini scoring)         │
+└──────────────────────────────────────────────────────┘
 ```
 
----
+## Tech stack
 
-## 🚦 Getting Started
+| Layer | Tech |
+|---|---|
+| Frontend | React 19, Vite 6, TypeScript 5.8, Tailwind 4, Lucide, Motion |
+| Backend | FastAPI, LangGraph, LangChain, `langchain-google-genai` |
+| LLM | Google Gemini |
+| File parsing | PyMuPDF (PDF), `python-docx` (DOCX) |
+| Data | Pydantic v2; mock job corpus in `backend/utils/dummy_jobs.json` |
 
-### 1. Prerequisites
-- Python 3.10+
-- Node.js 18+
-- Google Gemini API Key
+## Run locally
 
-### 2. Backend Setup
+### Backend
+
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate            # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-# Copy .env.example to .env and add your GEMINI_API_KEY
-uvicorn main:app --reload
+cp .env.example .env                 # then add your GEMINI_API_KEY
+uvicorn main:app --reload            # http://localhost:8000
 ```
 
-### 3. Frontend Setup
+Open <http://localhost:8000/docs> for the interactive Swagger UI — the easiest way to demo the agents end-to-end without the frontend.
+
+### Frontend
+
 ```bash
 cd frontend
 npm install
-npm run dev
+cp .env.example .env.local           # then set VITE_API_URL
+npm run dev                          # http://localhost:3000
 ```
 
----
+## Deploy
 
-## 🔮 Roadmap
-- [ ] **Live Job API Integration**: Currently using mock data; integrating LinkedIn & JSearch APIs.
-- [ ] **GCP Vector DB**: Moving from mockup to Google Cloud Vertex AI / Vector Search.
-- [ ] **Auth System**: implementing Google OAuth and manual email/password auth.
-- [ ] **Chatbot**: Integrated AI assistant for user queries based on profile data.
+Get a Gemini API key first: <https://aistudio.google.com/app/apikey>.
 
----
+### Backend → Hugging Face Spaces (Docker, free)
 
-## 📄 License
+1. Create a new Space at <https://huggingface.co/new-space> with `SDK = Docker`.
+2. Push the `backend/` directory to the Space (or link via the Spaces UI; HF auto-detects the `backend/Dockerfile`).
+3. In **Settings → Variables and secrets**, add:
+   - `GEMINI_API_KEY` (secret)
+   - `ALLOWED_ORIGINS` = your Vercel frontend URL once it's deployed (e.g. `https://recrux-ai.vercel.app`)
+4. The Space exposes port `7860`; Swagger UI is available at `/docs`.
+
+### Frontend → Vercel (free)
+
+1. Create a project at <https://vercel.com/new>, import this repo.
+2. **Root directory**: `frontend`
+3. Vercel auto-detects Vite. Build command: `npm run build`, Output: `dist`.
+4. **Environment variables**: `VITE_API_URL` = your HF Space URL.
+5. After first deploy, copy the Vercel URL back into the HF Space's `ALLOWED_ORIGINS` so CORS lets the frontend in.
+
+## Roadmap
+
+- [ ] **Wire frontend → backend.** Add resume upload, dispatch to `/api/agents`, render scored matches.
+- [ ] **Live job APIs.** Replace `dummy_jobs.json` with LinkedIn or JSearch.
+- [ ] **Vector store.** ChromaDB integration is in `requirements.txt` but not yet wired into the agent graph.
+- [ ] **Auth.** Google OAuth + email/password.
+
+## License
+
 Reserved for Recrux.AI Team.
